@@ -64,3 +64,9 @@ key_already_exists
 15> siamese:get(mno, S5).
 5
 ```
+
+
+## TODO
+
+- [ ] Property tests
+- [ ] Performance tests
