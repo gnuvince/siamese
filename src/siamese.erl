@@ -16,17 +16,22 @@
 ]).
 
 
+-type symtable() :: nonempty_list(map()).
+
 %% Return an empty symbol table.
+-spec new() -> symtable().
 new() ->
     [maps:new()].
 
 
 %% Create a symbol table from a list of {Symbol, Value} tuples.
+-spec to_list(symtable()) -> list({term(), term()}).
 to_list(Symtable) ->
     lists:flatten([maps:to_list(Map) || Map <- Symtable]).
 
 
 %% Convert the symbol table to a list of {Symbol, Value} tuples.
+-spec from_list(list({term(), term()})) -> symtable().
 from_list(List) ->
     lists:foldl(fun ({K, V}, Symtable) -> put(K, V, Symtable) end,
                 new(),
@@ -36,11 +41,13 @@ from_list(List) ->
 %% Open a new scope in a symbol table by consing a new
 %% empty map at the beginning of the stack.  This allows
 %% shadowing of identifiers.
+-spec open_scope(symtable()) -> symtable().
 open_scope(Symtable) ->
     [maps:new() | Symtable].
 
 
 %% Close the top-most scope by popping it off the stack.
+-spec close_scope(symtable()) -> symtable().
 close_scope([_ | Symtable]) ->
     Symtable.
 
@@ -49,6 +56,7 @@ close_scope([_ | Symtable]) ->
 %% inner-most scope to the outer-most.  Return the tuple
 %% {ok, Value} if Symbol is found, the atom undefined
 %% otherwise.
+-spec find(term(), symtable()) -> {ok, term()} | undefined.
 find(_, []) ->
     undefined;
 find(Symbol, [Map | Rest]) ->
@@ -60,6 +68,7 @@ find(Symbol, [Map | Rest]) ->
 
 %% Return the value associated with Symbol; if Symbol is
 %% not found in the symbol table, raise an error.
+-spec get(term(), symtable()) -> term().
 get(Symbol, Symtable) ->
     case find(Symbol, Symtable) of
         {ok, Value} -> Value;
@@ -69,6 +78,7 @@ get(Symbol, Symtable) ->
 
 %% Return the value associated with Symbol; if Symbol is
 %% not found in the symbol table, return Default.
+-spec get(term(), symtable(), term()) -> term().
 get(Symbol, Symtable, Default) ->
     case find(Symbol, Symtable) of
         {ok, Value} -> Value;
@@ -77,6 +87,7 @@ get(Symbol, Symtable, Default) ->
 
 
 %% Verify if a key exists in the symbol table.
+-spec is_key(term(), symtable()) -> boolean().
 is_key(Symbol, Symtable) ->
     case find(Symbol, Symtable) of
         {ok, _} -> true;
@@ -91,6 +102,8 @@ is_key(Symbol, Symtable) ->
 %% Return the atom invalid_symbol_table if the symbol table
 %% is in an invalid state, i.e., an empty list containing no
 %% scopes.
+-spec put(term(), term(), symtable())
+         -> symtable() | invalid_symbol_table | key_already_exists.
 put(_Symbol, _Value, []) ->
     invalid_symbol_table;
 put(Symbol, Value, [Map | Rest]) ->
@@ -104,6 +117,7 @@ put(Symbol, Value, [Map | Rest]) ->
 %% Return the atom invalid_symbol_table if the symbol table
 %% is in an invalid state, i.e., an empty list containing no
 %% scopes.
+-spec remove(term(), symtable()) -> symtable | invalid_symbol_table.
 remove(_Symbol, []) ->
     invalid_symbol_table;
 remove(Symbol, [Map | Rest]) ->
@@ -113,5 +127,6 @@ remove(Symbol, [Map | Rest]) ->
 %% Return the total number of bindings in the symbol table.  An
 %% identifier that is shadowed (i.e., the same key occurs in multiple
 %% scopes) is counted multiple times.
+-spec size(symtable()) -> non_neg_integer().
 size(Symtable) ->
     lists:sum([maps:size(M) || M <- Symtable]).
