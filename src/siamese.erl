@@ -24,13 +24,13 @@ new() ->
     [maps:new()].
 
 
-%% Create a symbol table from a list of {Symbol, Value} tuples.
+%% Convert the symbol table to a list of {Symbol, Value} tuples.
 -spec to_list(symtable()) -> list({term(), term()}).
 to_list(Symtable) ->
     lists:flatten([maps:to_list(Map) || Map <- Symtable]).
 
 
-%% Convert the symbol table to a list of {Symbol, Value} tuples.
+%% Create a symbol table from a list of {Symbol, Value} tuples.
 -spec from_list(list({term(), term()})) -> symtable().
 from_list(List) ->
     lists:foldl(fun ({K, V}, Symtable) -> put(K, V, Symtable) end,
