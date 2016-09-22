@@ -6,18 +6,14 @@
          from_list/1,
          open_scope/1,
          close_scope/1,
-         add/3,
+         put/3,
          remove/2,
          find/2,
+         is_key/2,
          get/2,
          get/3,
          size/1
 ]).
-
-
-%% A symbol table is represented as a stack of maps.
-%% The stack allows having multiple maps representing
-%% different levels of scope nesting.
 
 
 %% Return an empty symbol table.
@@ -32,7 +28,7 @@ to_list(Symtable) ->
 
 %% Convert the symbol table to a list of {Symbol, Value} tuples.
 from_list(List) ->
-    lists:foldl(fun ({K, V}, Symtable) -> add(K, V, Symtable) end,
+    lists:foldl(fun ({K, V}, Symtable) -> put(K, V, Symtable) end,
                 new(),
                 List).
 
@@ -51,10 +47,10 @@ close_scope([_ | Symtable]) ->
 
 %% Try to find a symbol in the symbol table starting from the
 %% inner-most scope to the outer-most.  Return the tuple
-%% {ok, Value} if Symbol is found, the atom symbol_not_found
+%% {ok, Value} if Symbol is found, the atom undefined
 %% otherwise.
 find(_, []) ->
-    symbol_not_found;
+    undefined;
 find(Symbol, [Map | Rest]) ->
     case maps:find(Symbol, Map) of
         {ok, Value} -> {ok, Value};
@@ -67,7 +63,7 @@ find(Symbol, [Map | Rest]) ->
 get(Symbol, Symtable) ->
     case find(Symbol, Symtable) of
         {ok, Value} -> Value;
-        symbol_not_found -> error({badkey, Symbol})
+        undefined -> error({badkey, Symbol})
     end.
 
 
@@ -76,7 +72,15 @@ get(Symbol, Symtable) ->
 get(Symbol, Symtable, Default) ->
     case find(Symbol, Symtable) of
         {ok, Value} -> Value;
-        symbol_not_found -> Default
+        undefined -> Default
+    end.
+
+
+%% Verify if a key exists in the symbol table.
+is_key(Symbol, Symtable) ->
+    case find(Symbol, Symtable) of
+        {ok, _} -> true;
+        undefined -> false
     end.
 
 
@@ -87,9 +91,9 @@ get(Symbol, Symtable, Default) ->
 %% Return the atom invalid_symbol_table if the symbol table
 %% is in an invalid state, i.e., an empty list containing no
 %% scopes.
-add(_Symbol, _Value, []) ->
+put(_Symbol, _Value, []) ->
     invalid_symbol_table;
-add(Symbol, Value, [Map | Rest]) ->
+put(Symbol, Value, [Map | Rest]) ->
     case maps:is_key(Symbol, Map) of
         true -> key_already_exists;
         false -> [maps:put(Symbol, Value, Map) | Rest]
@@ -106,5 +110,8 @@ remove(Symbol, [Map | Rest]) ->
     [maps:remove(Symbol, Map) | Rest].
 
 
+%% Return the total number of bindings in the symbol table.  An
+%% identifier that is shadowed (i.e., the same key occurs in multiple
+%% scopes) is counted multiple times.
 size(Symtable) ->
     lists:sum([maps:size(M) || M <- Symtable]).
